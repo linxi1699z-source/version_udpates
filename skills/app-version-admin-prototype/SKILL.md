@@ -19,3 +19,11 @@ When a prototype shows a management list, add working pagination unless the user
 ## Sample-data baseline
 
 For each independently selectable site or data partition, seed at least 10 realistic sample records so that the default pagination state is demonstrable. When two selections explicitly share data, one common dataset is sufficient. Include enough variation to demonstrate relevant filters and status/update-method states.
+
+## Source control and Pages publishing
+
+Treat implementation, verification, and publication as separate actions.
+
+- Default to local edits and local verification only. Do not commit, push, or publish after ordinary prototype changes.
+- Commit and push only when the user explicitly asks to sync to Git. Do not infer Git authorization from a request to change the prototype.
+- When the user explicitly asks to sync, publish the static prototype through GitHub Pages and provide the resulting Pages URL after verifying it is live.
