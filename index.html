@@ -66,6 +66,7 @@
     let currentSite='cn',formMode='publish',editIndex=null,pageSize=10,currentPage=1,copySourceSite='',copySourceRow=null,batchConfigs=[],activationConfigs=[],copySiteConfigState={};
     const siteSwitchOverlay=document.querySelector('#siteSwitchOverlay'),siteSwitchText=document.querySelector('#siteSwitchText');
     let siteSwitchInProgress=false;
+    const usesSiteConfigs=()=>formMode==='publish'||formMode==='copy';
     const activeRows=()=>siteData[currentSite];
     const siteOptions=[{value:'cn',label:'中国大陆'},{value:'us',label:'美区'},{value:'uk',label:'英区'}];
     const firmwareVersions=['01.001.003','01.001.007','01.049.001','01.050.000','02.013.000','02.022.006','05.011.003','06.001.001'];
@@ -125,17 +126,17 @@
     function setForceAppVersionRanges(ranges=[{start:'',end:''}]){const normalized=ranges.length?ranges:[{start:'',end:''}];forceVersionRangesEl.innerHTML=normalized.map(forceVersionRangeMarkup).join('');syncForceVersionRangeActions()}
     function renderForceAppVersionOptions(){setForceAppVersionRanges(forceVersionRangeValues().map(range=>({start:range.start,end:range.end})))}
     function forceVersionRangeIssue(requireStart=false){const ranges=forceVersionRangeValues();for(let index=0;index<ranges.length;index+=1){const range=ranges[index],previous=ranges[index-1];if(requireStart&&!range.start)return {message:'请选择需强制更新开始版本',field:range.row.querySelector('.force-app-version-start')};if(range.start&&range.end&&compareAppVersions(range.start,range.end)>0)return {message:'开始版本需要小于等于结束版本',field:range.row.querySelector('.force-app-version-end')};if(index>0&&range.start){if(!previous.end)return {message:'请先选择上一个区间的结束版本',field:previous.row.querySelector('.force-app-version-end')};if(compareAppVersions(range.start,previous.end)<0)return {message:'开始版本需要大于等于上一个区间的结束版本',field:range.row.querySelector('.force-app-version-start')}}}return null}
-    function renderCopySiteOptions(){const sourcePartition=dataPartition(copySourceSite),options=sourcePartition==='global'?siteOptions.filter(option=>option.value!==copySourceSite).sort((a,b)=>dataPartition(a.value)==='global'?-1:1):siteOptions.filter(option=>dataPartition(option.value)!==sourcePartition);copySiteOptions.innerHTML=options.map(option=>`<label class="check"><input type="checkbox" value="${option.value}" ${sourcePartition==='global'&&dataPartition(option.value)==='global'?'checked':''}>${option.label}</label>`).join('');copySiteConfigState={};renderCopySiteConfigs()}
+    function renderCopySiteOptions(){const isPublish=formMode==='publish',sourcePartition=dataPartition(copySourceSite),options=isPublish?siteOptions:sourcePartition==='global'?siteOptions.filter(option=>option.value!==copySourceSite).sort((a,b)=>dataPartition(a.value)==='global'?-1:1):siteOptions.filter(option=>dataPartition(option.value)!==sourcePartition);copySiteOptions.innerHTML=options.map((option,index)=>`<label class="check"><input type="checkbox" value="${option.value}" ${isPublish?(option.value===siteSelect.value?'checked':''):(index===0?'checked':'')}>${option.label}</label>`).join('');copySiteConfigState={};renderCopySiteConfigs()}
     const copyTargetSites=()=>[...copySiteOptions.querySelectorAll('input:checked')].map(input=>input.value);
     const copyTargetPartitions=()=>[...new Set(copyTargetSites().map(dataPartition))];
     const copySiteConfigTitle=partition=>partition==='cn'?'中国大陆站点配置':'美区 / 英区共享配置';
     const selectedFormPlatform=()=>document.querySelector('.platform.selected')?.dataset.platform||'Android';
     const defaultCopySiteConfig=partition=>({url:defaultAppUrl(partition,selectedFormPlatform()),androidAppId:defaultAndroidAppId(partition),protocolVersion:'',hasApk:false});
     const sourceSharedCopySiteConfig=()=>({url:appUrl.value||defaultAppUrl(copySourceSite,selectedFormPlatform()),androidAppId:androidAppId.value||defaultAndroidAppId(copySourceSite),protocolVersion:protocolVersion.value,hasApk:hasExistingApk});
-    const initialCopySiteConfig=partition=>dataPartition(copySourceSite)==='global'&&partition==='global'?sourceSharedCopySiteConfig():defaultCopySiteConfig(partition);
+    const initialCopySiteConfig=partition=>formMode==='copy'&&dataPartition(copySourceSite)==='global'&&partition==='global'?sourceSharedCopySiteConfig():defaultCopySiteConfig(partition);
     function captureCopySiteConfigs(){copySiteConfigs.querySelectorAll('[data-copy-partition]').forEach(card=>{const partition=card.dataset.copyPartition,previous=copySiteConfigState[partition]||initialCopySiteConfig(partition),apk=card.querySelector('.copy-apk');copySiteConfigState[partition]={url:card.querySelector('.copy-app-url').value,androidAppId:card.querySelector('.copy-android-app-id').value,protocolVersion:card.querySelector('.copy-protocol-version').value,hasApk:Boolean(apk.files.length)||previous.hasApk}})}
     function renderCopySiteConfigs(){captureCopySiteConfigs();copySiteConfigs.innerHTML=copyTargetPartitions().map(partition=>{const config=copySiteConfigState[partition]||initialCopySiteConfig(partition);copySiteConfigState[partition]=config;return `<section class="copy-site-config" data-copy-partition="${partition}"><div class="copy-site-config-title">${copySiteConfigTitle(partition)}</div><div class="copy-site-fields"><label class="required copy-config-apk">APK 文件：</label><div class="copy-config-apk"><button class="file-btn">＋ 点击上传<input type="file" accept=".apk" class="copy-apk"></button><span class="copy-apk-name mini-note">${config.hasApk?'已上传：RingConn-release.apk':''}</span></div><label class="required copy-config-url">URL：</label><div class="copy-config-url"><input class="copy-app-url" value="${config.url}" placeholder="请输入应用商店链接"></div><label class="required copy-config-android">AndroidAppId：</label><div class="copy-config-android"><input class="copy-android-app-id" value="${config.androidAppId}"></div><label class="required">协议版本：</label><div><select class="copy-protocol-version"><option value="">请选择协议版本</option><option value="4.4.0" ${config.protocolVersion==='4.4.0'?'selected':''}>4.4.0</option><option value="2.2.0" ${config.protocolVersion==='2.2.0'?'selected':''}>2.2.0</option></select></div></div></section>`}).join('');syncCopySiteConfigFields()}
-    function syncCopySiteUrlDefaults(platform){if(formMode!=='copy')return;copySiteConfigs.querySelectorAll('[data-copy-partition]').forEach(card=>{const partition=card.dataset.copyPartition,config=copySiteConfigState[partition]||initialCopySiteConfig(partition),url=defaultAppUrl(partition,platform);config.url=url;copySiteConfigState[partition]=config;card.querySelector('.copy-app-url').value=url})}
+    function syncCopySiteUrlDefaults(platform){if(!usesSiteConfigs())return;copySiteConfigs.querySelectorAll('[data-copy-partition]').forEach(card=>{const partition=card.dataset.copyPartition,config=copySiteConfigState[partition]||initialCopySiteConfig(partition),url=defaultAppUrl(partition,platform);config.url=url;copySiteConfigState[partition]=config;card.querySelector('.copy-app-url').value=url})}
     function syncCopySiteConfigFields(){if(!copySiteConfigs)return;const platform=document.querySelector('.platform.selected')?.dataset.platform,isAndroid=platform==='Android',isGray=appGrayToggle.checked;copySiteConfigs.querySelectorAll('.copy-config-apk').forEach(item=>item.classList.toggle('copy-site-field-hidden',!isAndroid||isGray));copySiteConfigs.querySelectorAll('.copy-config-url').forEach(item=>item.classList.toggle('copy-site-field-hidden',isAndroid||isGray));copySiteConfigs.querySelectorAll('.copy-config-android').forEach(item=>item.classList.toggle('copy-site-field-hidden',!isAndroid))}
     function syncForceUpdate(){const force=forceUpdate.checked;forceAppVersionRow.classList.toggle('show',force);forceOsRow.classList.toggle('show',force);updateDialogToggle.checked=force||updateDialogToggle.checked;updateDialogToggle.disabled=force;descriptionLabel.classList.toggle('required',force);updateDialogNote.textContent=force?'强制更新时自动开启，不可关闭':'';descriptionHint.textContent=force?'强制更新时请至少填写一条 APP 版本更新描述':'请填写各语言的 APP 版本更新内容'}
     function resetForm(){versionInput.value='';versionInput.readOnly=false;appGrayToggle.checked=false;recoveryToggle.checked=false;recoveryConfig.value='';recoveryDetails.classList.remove('show');apkInput.value='';apkName.textContent='';hasExistingApk=false;androidAppId.value=defaultAndroidAppId(siteSelect.value);protocolVersion.value='';copySiteConfigState={};copySiteConfigs.innerHTML='';setForceAppVersionRanges();androidMinOsVersion.value='';iosMinOsVersion.value='';xlsxInput.value='';descriptionUploadStatus.textContent='';document.querySelectorAll('#languages textarea').forEach(textarea=>textarea.value='');syncDescriptionHeights();document.querySelectorAll('[data-fw]').forEach((input,index)=>input.checked=index===0);renderCards();normalUpdate.checked=true;updateDialogToggle.checked=false;setPlatform('Android');syncForceUpdate()}
@@ -160,6 +161,30 @@
     function validateActivationConfigs(){if(hasDuplicateActivationSite()){toast('站点重复');return false}for(const config of activationConfigs){if(!config.appStart){toast('请选择 APP 开始版本');return false}const message=activationRangeMessage(config);if(message){toast(message);return false}}return true}
     function applyVersionActivation(){if(!validateActivationConfigs())return;activationConfigs.forEach(config=>siteData[dataPartition(config.site)].forEach(row=>{if(compareAppVersions(row[0],config.appStart)>=0&&(!config.appEnd||compareAppVersions(row[0],config.appEnd)<=0)&&versionStatus(row)!=='已生效')row[11]='已生效'}));persistSessionData();renderRows();closeActivationModal();toast('站点 APP 版本已生效')}
 function openForm(mode,row=null,index=null,sourceSite=siteSelect.value){formMode=mode;editIndex=index;const isEdit=mode==='edit',isCopy=mode==='copy',isExisting=isEdit||isCopy;copySourceSite=isCopy?sourceSite:'';copySourceRow=isCopy?row:null;crumbCurrent.textContent=isEdit?'查看与编辑版本':isCopy?'复制版本':'发布新版本';formSite.textContent=isCopy?`复制来源：${siteName(copySourceSite)}`:`当前站点：${currentSiteName()}`;quickEdit.classList.toggle('show',isEdit);copySiteRow.classList.toggle('show',isCopy);updateModeRow.classList.add('show');submitButton.textContent=isEdit?'保存':isCopy?'复制并发布':'发布';document.querySelectorAll('.platform').forEach(item=>item.classList.toggle('locked',isEdit));document.querySelectorAll('.copy-shared-row').forEach(item=>item.classList.toggle('copy-hidden',isCopy));resetForm();if(isExisting){versionInput.value=row[0];versionInput.readOnly=isEdit;setPlatform(labelToPlatform(row[1]));document.querySelectorAll('.firmware-range-select').forEach(select=>select.selectedIndex=1);protocolVersion.value='4.4.0';hasExistingApk=labelToPlatform(row[1])==='Android';apkName.textContent=hasExistingApk?'已上传：RingConn-release.apk':'';restoreFormSettings(row[9]);forceUpdate.checked=row[3]==='强制更新';normalUpdate.checked=!forceUpdate.checked;setForceAppVersionRanges(row[8]?.appRanges?.length?row[8].appRanges:[{start:row[8]?.appStart||(forceUpdate.checked?availableAppVersions()[0]||'':''),end:row[8]?.appEnd||''}]);androidMinOsVersion.value=row[8]?.android||'';iosMinOsVersion.value=row[8]?.ios||'';updateDialogToggle.checked=forceUpdate.checked||Boolean(row[9]?.updateDialog);if(row[7]){populateDescriptions(row[7]);descriptionUploadStatus.textContent='已上传翻译'}else{populateAiDescriptions(row[2]);descriptionUploadStatus.textContent=''}if(isCopy)renderCopySiteOptions();syncForceUpdate()}list.style.display='none';form.style.display='block';window.scrollTo(0,0)}
+    function openForm(mode,row=null,index=null,sourceSite=siteSelect.value){
+      formMode=mode;editIndex=index;
+      const isEdit=mode==='edit',isCopy=mode==='copy',isPublish=mode==='publish',isExisting=isEdit||isCopy;
+      copySourceSite=isCopy?sourceSite:'';copySourceRow=isCopy?row:null;
+      crumbCurrent.textContent=isEdit?'查看与编辑版本':isCopy?'复制版本':'发布新版本';
+      formSite.textContent=isCopy?`复制来源：${siteName(copySourceSite)}`:isPublish?'请在下方勾选发布站点':`当前站点：${currentSiteName()}`;
+      quickEdit.classList.toggle('show',isEdit);copySiteRow.classList.toggle('show',usesSiteConfigs());updateModeRow.classList.add('show');
+      submitButton.textContent=isEdit?'保存':isCopy?'复制并发布':'发布';
+      document.querySelectorAll('.platform').forEach(item=>item.classList.toggle('locked',isEdit));
+      document.querySelectorAll('.copy-shared-row').forEach(item=>item.classList.toggle('copy-hidden',usesSiteConfigs()));
+      resetForm();
+      if(isPublish)renderCopySiteOptions();
+      if(isExisting){
+        versionInput.value=row[0];versionInput.readOnly=isEdit;setPlatform(labelToPlatform(row[1]));
+        document.querySelectorAll('.firmware-range-select').forEach(select=>select.selectedIndex=1);
+        protocolVersion.value='4.4.0';hasExistingApk=labelToPlatform(row[1])==='Android';apkName.textContent=hasExistingApk?'已上传：RingConn-release.apk':'';
+        restoreFormSettings(row[9]);forceUpdate.checked=row[3]==='强制更新';normalUpdate.checked=!forceUpdate.checked;
+        setForceAppVersionRanges(row[8]?.appRanges?.length?row[8].appRanges:[{start:row[8]?.appStart||(forceUpdate.checked?availableAppVersions()[0]||'':''),end:row[8]?.appEnd||''}]);
+        androidMinOsVersion.value=row[8]?.android||'';iosMinOsVersion.value=row[8]?.ios||'';updateDialogToggle.checked=forceUpdate.checked||Boolean(row[9]?.updateDialog);
+        if(row[7]){populateDescriptions(row[7]);descriptionUploadStatus.textContent='已上传翻译'}else{populateAiDescriptions(row[2]);descriptionUploadStatus.textContent=''}
+        if(isCopy)renderCopySiteOptions();syncForceUpdate()
+      }
+      list.style.display='none';form.style.display='block';window.scrollTo(0,0)
+    }
     renderRows();renderCards();
     siteSelect.onchange=()=>switchSite(siteSelect.value);
     document.querySelector('#publishBtn').onclick=()=>openForm('publish');document.querySelector('#backBtn').onclick=showList;document.querySelector('#cancelBtn').onclick=showList;document.querySelector('#batchBtn').onclick=openBatchModal;document.querySelector('#batchClose').onclick=closeBatchModal;document.querySelector('#batchCancel').onclick=closeBatchModal;batchAdd.onclick=()=>{batchConfigs.push(blankBatchConfig());renderBatchConfigs()};batchSubmit.onclick=applyBatchFirmwareUpdate;activateButton.onclick=openActivationModal;document.querySelector('#activationClose').onclick=closeActivationModal;document.querySelector('#activationCancel').onclick=closeActivationModal;activationAdd.onclick=()=>{activationConfigs.push(blankActivationConfig());renderActivationConfigs()};activationSubmit.onclick=applyVersionActivation;const goToAppVersionList=()=>{closeBatchModal();closeActivationModal();showList()};document.querySelector('#appVersionNav').onclick=goToAppVersionList;document.querySelector('#appVersionNav').onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();goToAppVersionList()}};
@@ -177,5 +202,42 @@ function openForm(mode,row=null,index=null,sourceSite=siteSelect.value){formMode
     const cloneData=value=>value===undefined?undefined:JSON.parse(JSON.stringify(value));
     const currentForceConfig=force=>{const appRanges=force?forceVersionRangeValues().map(range=>({start:range.start,end:range.end})):[];return {appRanges,appStart:appRanges[0]?.start||'',appEnd:appRanges[0]?.end||'',android:force?androidMinOsVersion.value.trim():'',ios:force?iosMinOsVersion.value.trim():''}};
     submitButton.onclick=()=>{if(formMode==='copy'&&!copyTargetSites().length){toast('请选择复制站点');return}if(!validateForm())return;const descriptions=collectDescriptions(),description=descriptions[descriptionLanguage()],force=forceUpdate.checked,forceConfig=currentForceConfig(force),settings=collectFormSettings();if(formMode==='edit'){const row=activeRows()[editIndex];row[2]=description;row[3]=force?'强制更新':'一般更新';row[7]=descriptions;row[8]=forceConfig;row[9]=settings;row[11]='未生效';toast('版本配置已保存')}else if(formMode==='copy'){const targetPartitions=copyTargetPartitions(),sourceFirmware=cloneData(copySourceRow?.[10]);targetPartitions.forEach(part=>{const config=copySiteConfigState[part],siteSettings={...settings,appUrl:config.url,androidAppId:config.androidAppId,protocolVersion:config.protocolVersion,hasExistingApk:config.hasApk};siteData[part].unshift([versionInput.value.trim(),platformToLabel(document.querySelector('.platform.selected').dataset.platform),description,force?'强制更新':'一般更新','当前用户','2026-08-25 11:30:00','最新',cloneData(descriptions),cloneData(forceConfig),cloneData(siteSettings),cloneData(sourceFirmware),'未生效'])});currentPage=1;toast('版本配置已复制')}else{activeRows().unshift([versionInput.value.trim(),platformToLabel(document.querySelector('.platform.selected').dataset.platform),description,force?'强制更新':'一般更新','当前用户','2026-08-25 11:30:00','最新',descriptions,forceConfig,settings,undefined,'未生效']);currentPage=1;toast(`版本已发布至${currentSiteName()}`)}persistSessionData();renderRows();setTimeout(showList,700)};
+    function validatePublishForm(){
+      captureCopySiteConfigs();
+      const targets=copyTargetPartitions();
+      if(!targets.length)return validationError('请选择发布站点');
+      const isAndroid=selectedFormPlatform()==='Android';
+      for(const partition of targets){
+        const config=copySiteConfigState[partition],card=copySiteConfigs.querySelector(`[data-copy-partition="${partition}"]`);
+        if(isAndroid&&!appGrayToggle.checked&&!config.hasApk)return validationError('请上传 APK 文件',card.querySelector('.copy-apk'));
+        if(!isAndroid&&!appGrayToggle.checked&&!config.url.trim())return validationError('请输入 URL',card.querySelector('.copy-app-url'));
+        if(isAndroid&&!config.androidAppId.trim())return validationError('请输入Android APP ID',card.querySelector('.copy-android-app-id'));
+        if(!config.protocolVersion)return validationError('请选择协议版本',card.querySelector('.copy-protocol-version'));
+      }
+      const saved={hasExistingApk,url:appUrl.value,androidAppId:androidAppId.value,protocolVersion:protocolVersion.value};
+      const firstConfig=copySiteConfigState[targets[0]];
+      hasExistingApk=firstConfig.hasApk;appUrl.value=firstConfig.url;androidAppId.value=firstConfig.androidAppId;protocolVersion.value=firstConfig.protocolVersion;
+      const valid=validateForm();
+      hasExistingApk=saved.hasExistingApk;appUrl.value=saved.url;androidAppId.value=saved.androidAppId;protocolVersion.value=saved.protocolVersion;
+      return valid;
+    }
+    submitButton.onclick=()=>{
+      if(formMode==='copy'&&!copyTargetSites().length){toast('请选择复制站点');return}
+      if(formMode==='publish'&&!copyTargetSites().length){toast('请选择发布站点');return}
+      if(formMode==='publish'?!validatePublishForm():!validateForm())return;
+      const descriptions=collectDescriptions(),description=descriptions[descriptionLanguage()],force=forceUpdate.checked,forceConfig=currentForceConfig(force),settings=collectFormSettings();
+      if(formMode==='edit'){
+        const row=activeRows()[editIndex];row[2]=description;row[3]=force?'强制更新':'一般更新';row[7]=descriptions;row[8]=forceConfig;row[9]=settings;row[11]='未生效';toast('版本配置已保存')
+      }else if(formMode==='copy'||formMode==='publish'){
+        captureCopySiteConfigs();
+        const targetPartitions=copyTargetPartitions(),sourceFirmware=formMode==='copy'?cloneData(copySourceRow?.[10]):undefined;
+        targetPartitions.forEach(partition=>{
+          const config=copySiteConfigState[partition],siteSettings={...settings,appUrl:config.url,androidAppId:config.androidAppId,protocolVersion:config.protocolVersion,hasExistingApk:config.hasApk};
+          siteData[partition].unshift([versionInput.value.trim(),platformToLabel(document.querySelector('.platform.selected').dataset.platform),description,force?'强制更新':'一般更新','当前用户','2026-08-26 11:30:00','最新',cloneData(descriptions),cloneData(forceConfig),cloneData(siteSettings),cloneData(sourceFirmware),'未生效'])
+        });
+        currentPage=1;toast(formMode==='copy'?'版本配置已复制':`版本已发布至${copyTargetSites().map(siteName).join('、')}`)
+      }
+      persistSessionData();renderRows();setTimeout(showList,700)
+    };
   </script>
 </body></html>
