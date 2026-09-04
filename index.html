@@ -74,6 +74,12 @@
     let siteSwitchInProgress=false;
     const usesSiteConfigs=()=>formMode==='publish'||formMode==='copy';
     const activeRows=()=>siteData[currentSite];
+    const listTable=document.querySelector('.list-page table'),listColumnWidths=['8%','7%','8%','13%','13%','7%','10%','7%','7%','8%','12%'];
+    const versionTypeColumn=document.createElement('col'),versionTypeHeader=document.createElement('th');versionTypeColumn.style.width=listColumnWidths[2];versionTypeHeader.textContent='版本类型';listTable.querySelector('colgroup').children[1].after(versionTypeColumn);listTable.querySelector('thead th:nth-child(2)').after(versionTypeHeader);[...listTable.querySelectorAll('colgroup col')].forEach((column,index)=>column.style.width=listColumnWidths[index]);
+    document.querySelector('.form-page .form-row').insertAdjacentHTML('afterend','<div class="form-row" id="versionTypeRow"><label class="required">版本类型：</label><div class="control"><label class="radio"><input type="radio" name="versionType" value="正常版本" checked>正常版本</label><label class="radio"><input type="radio" name="versionType" value="FDA测试版本">FDA测试版本</label></div></div>');
+    const selectedVersionType=()=>document.querySelector('input[name="versionType"]:checked')?.value||'正常版本';
+    function setVersionType(type='正常版本'){const value=type==='FDA测试版本'?'FDA测试版本':'正常版本';document.querySelectorAll('input[name="versionType"]').forEach(input=>input.checked=input.value===value)}
+    function setVersionTypeReadonly(readonly){document.querySelectorAll('input[name="versionType"]').forEach(input=>input.disabled=readonly)}
     const siteOptions=[{value:'cn',label:'中国大陆'},{value:'us',label:'美区'},{value:'uk',label:'英区'}];
     const firmwareVersions=['01.001.003','01.001.007','01.049.001','01.050.000','02.013.000','02.022.006','05.011.003','06.001.001'];
     const dataPartition=site=>site==='cn'?'cn':'global';
@@ -90,6 +96,8 @@
     ensureVersionStatusExamples();
     function ensureVersionStatuses(){Object.values(siteData).forEach(rows=>rows.forEach(row=>{if(row[11]==='未生效')row[11]='待生效';else if(!row[11])row[11]='已生效'}))}
     ensureVersionStatuses();
+    function ensureVersionTypes(){Object.values(siteData).forEach(rows=>rows.forEach(row=>{if(!row[13])row[13]='正常版本'}));[['cn','4.2.7','安卓'],['global','4.2.8','iOS']].forEach(([partition,version,platform])=>{const row=siteData[partition].find(item=>item[0]===version&&item[1]===platform);if(row&&row[13]==='正常版本')row[13]='FDA测试版本'})}
+    ensureVersionTypes();
     function ensureOpenEndedFirmwareExamples(){[['cn','4.2.6','HarmonyOS','05.001.000'],['global','4.3.2','HarmonyOS','04.004.000']].forEach(([partition,version,platform,start])=>{const row=siteData[partition].find(item=>item[0]===version&&item[1]===platform);if(row)row[10]={...(row[10]||{}),start,end:''}})}
     ensureOpenEndedFirmwareExamples();
     const currentSiteName=()=>siteSelect.options[siteSelect.selectedIndex].text;
@@ -108,8 +116,11 @@
     const rowDescription=row=>{const descriptions=row[7]?.normal||row[7];return descriptions?.[descriptionLanguage()]||row[2]};
     const forceAppVersionRange=row=>{const ranges=row[8]?.appRanges?.length?row[8].appRanges:row[8]?.appStart?[{start:row[8].appStart,end:row[8].appEnd}]:[];return ranges.length?ranges.map(range=>`${range.start}${range.end?`—${range.end}`:''}`).join('；'):'—'};
     const versionStatus=row=>row[11]||'已生效';
+    const versionType=row=>row[13]||'正常版本';
     const firmwareDisplay=row=>row[10]?.configs?Object.entries(row[10].configs).map(([model,config])=>`${model}： ${config.start} - ${config.end}`).join('<br>'):row[10]?.start?`固件版本： ${row[10].start} - ${row[10].end||'最新版本'}`:firmware;
     function renderRows(){const rows=filteredRows();const totalPages=Math.max(1,Math.ceil(rows.length/pageSize));currentPage=Math.min(currentPage,totalPages);const pageRows=rows.slice((currentPage-1)*pageSize,currentPage*pageSize);versionRows.innerHTML=pageRows.length?pageRows.map(({row:r,index})=>{const isLatest=canEditVersionRow(r),canActivate=versionStatus(r)!=='已生效';return `<tr><td>${r[0]}${isLatest?'<span class="badge">最新</span>':''}</td><td>${labelToPlatform(r[1])}</td><td>${rowDescription(r)}</td><td class="firmware">${firmwareDisplay(r)}</td><td>${r[3]}</td><td>${forceAppVersionRange(r)}</td><td><span class="version-status ${versionStatus(r)==='已生效'?'effective':'pending'}">${versionStatus(r)}</span></td><td>${r[4]}</td><td>${r[5]}</td><td class="actions"><span class="link edit" data-index="${index}">查看与编辑</span><span class="link copy" data-index="${index}">复制</span><span class="link ${canActivate?'single-activate':'disabled'}" ${canActivate?`data-index="${index}"`: 'aria-disabled="true"'}>一键生效</span><span class="delete">删除</span></td></tr>`}).join(''):'<tr><td class="empty-state" colspan="10">暂无符合筛选条件的数据</td></tr>';renderPagination(totalPages)}
+    const defaultRenderRows=renderRows;
+    renderRows=function(){defaultRenderRows();versionRows.querySelectorAll('tr').forEach(rowElement=>{const editLink=rowElement.querySelector('.edit');if(!editLink){rowElement.querySelector('.empty-state')?.setAttribute('colspan','11');return}const typeCell=document.createElement('td');typeCell.textContent=versionType(activeRows()[Number(editLink.dataset.index)]);rowElement.children[1].after(typeCell)})}
     const languageTable=document.querySelector('.language-table');languageTable.querySelector('thead tr').insertAdjacentHTML('beforeend','<th class="force-description-cell required">APP 强制更新描述</th>');document.querySelector('#languages').innerHTML=langs.map(x=>`<tr><td>${x}</td><td><textarea class="normal-description" placeholder="请输入${x} APP 版本更新描述"></textarea></td><td class="force-description-cell"><textarea class="force-description" placeholder="请输入${x} APP 强制更新描述"></textarea></td></tr>`).join('');
     function autoResize(textarea){textarea.style.height='auto';textarea.style.height=`${Math.max(50,textarea.scrollHeight)}px`}
     function syncDescriptionHeights(){document.querySelectorAll('#languages textarea').forEach(autoResize)}
@@ -157,6 +168,8 @@
     function syncForceUpdate(){const force=forceUpdate.checked;forceAppVersionRow.classList.toggle('show',force);updateSettingsGroup.classList.toggle('normal-update-layout',!force);normalUpdateDialogText.textContent=force?'显示非强制更新弹窗(不满足强制更新条件用户)':'显示非强制更新弹窗';forceUpdateDialogOption.classList.toggle('is-hidden',!force);const dialogOptions=forceUpdateDialogOption.parentElement;if(force)dialogOptions.prepend(forceUpdateDialogOption);else dialogOptions.append(forceUpdateDialogOption);forceUpdateDialog.checked=force;forceUpdateDialog.disabled=force;descriptionLabel.classList.add('required');languageTable.classList.toggle('force-mode',force);updateDialogNote.textContent=force?'显示强制更新弹窗默认开启，不可编辑':'';descriptionHint.textContent=force?'请填写各语言的 APP 版本更新内容及强制更新描述':'请填写各语言的 APP 版本更新内容'}
     function setUpdateSettingsReadonly(locked){updateModeRow.classList.toggle('update-settings-locked',locked);updateSettingsGroup.classList.toggle('update-settings-locked',locked);[normalUpdate,forceUpdate,...forceAppVersionRow.querySelectorAll('select')].forEach(control=>control.disabled=locked);forceUpdateDialog.disabled=forceUpdate.checked;updateModeLockNote.textContent=locked?'仅同站点、同平台最新版本可修改更新方式和需强制更新APP版本':''}
     function resetForm(){versionInput.value='';versionInput.readOnly=false;appGrayToggle.checked=false;recoveryToggle.checked=false;recoveryConfig.value='';recoveryDetails.classList.remove('show');apkInput.value='';apkName.textContent='';hasExistingApk=false;androidAppId.value=defaultAndroidAppId(siteSelect.value);protocolVersion.value='';copySiteConfigState={};copySiteConfigs.innerHTML='';setForceAppVersionRanges();androidMinOsVersion.value='';iosMinOsVersion.value='';xlsxInput.value='';descriptionUploadStatus.textContent='';document.querySelectorAll('#languages textarea').forEach(textarea=>textarea.value='');syncDescriptionHeights();document.querySelectorAll('[data-fw]').forEach((input,index)=>input.checked=index===0);renderCards();normalUpdate.checked=true;normalUpdateDialog.checked=false;forceUpdateDialog.checked=false;setPlatform('Android');syncForceUpdate()}
+    const defaultResetForm=resetForm;
+    resetForm=function(){defaultResetForm();setVersionType('正常版本');setVersionTypeReadonly(false)};
     function showList(){form.style.display='none';list.style.display='block';window.scrollTo(0,0)}
     const batchModal=document.querySelector('#batchModal'),batchConfigsEl=document.querySelector('#batchConfigs'),batchAdd=document.querySelector('#batchAdd'),batchSubmit=document.querySelector('#batchSubmit');
     const blankBatchConfig=()=>({site:'cn',appStart:'',appEnd:'',firmwareStart:'',firmwareEnd:''});
@@ -210,6 +223,8 @@
       if(isView)setFormReadonly(true);
       list.style.display='none';form.style.display='block';window.scrollTo(0,0)
     }
+    const defaultOpenForm=openForm;
+    openForm=function(mode,row=null,index=null,sourceSite=siteSelect.value){defaultOpenForm(mode,row,index,sourceSite);setVersionType(row?versionType(row):'正常版本');setVersionTypeReadonly(mode==='edit'||mode==='view')}
     renderRows();renderCards();
     siteSelect.onchange=()=>switchSite(siteSelect.value);
     document.querySelector('#publishBtn').onclick=()=>openForm('publish');document.querySelector('#backBtn').onclick=showList;document.querySelector('#cancelBtn').onclick=showList;document.querySelector('#batchBtn').onclick=openBatchModal;document.querySelector('#batchClose').onclick=closeBatchModal;document.querySelector('#batchCancel').onclick=closeBatchModal;batchAdd.onclick=()=>{batchConfigs.push(blankBatchConfig());renderBatchConfigs()};batchSubmit.onclick=applyBatchFirmwareUpdate;activateButton.onclick=openActivationModal;document.querySelector('#activationClose').onclick=closeActivationModal;document.querySelector('#activationCancel').onclick=closeActivationModal;activationAdd.onclick=()=>{activationConfigs.push(blankActivationConfig(''));renderActivationConfigs()};activationSubmit.onclick=applyVersionActivation;document.querySelector('#singleActivationClose').onclick=closeSingleActivationModal;document.querySelector('#singleActivationCancel').onclick=closeSingleActivationModal;document.querySelector('#singleActivationConfirm').onclick=applySingleVersionActivation;const goToAppVersionList=()=>{closeBatchModal();closeActivationModal();closeSingleActivationModal();showList()};document.querySelector('#appVersionNav').onclick=goToAppVersionList;document.querySelector('#appVersionNav').onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();goToAppVersionList()}};
@@ -299,13 +314,13 @@
       if(formMode==='publish'?!validatePublishForm():!validateForm())return;
       const descriptions=collectDescriptions(),forceDescriptions=forceUpdate.checked?collectForceDescriptions():{},description=descriptions[descriptionLanguage()],force=forceUpdate.checked,descriptionPayload=force?{normal:descriptions,force:forceDescriptions}:descriptions,forceConfig=currentForceConfig(force),settings=collectFormSettings();
       if(formMode==='edit'){
-        const row=activeRows()[editIndex];row[2]=description;row[3]=force?'强制更新':'非强制更新';row[7]=descriptionPayload;row[8]=forceConfig;row[9]=settings;row[11]='待生效';toast('版本配置已保存')
+        const row=activeRows()[editIndex];row[2]=description;row[3]=force?'强制更新':'非强制更新';row[7]=descriptionPayload;row[8]=forceConfig;row[9]=settings;row[11]='待生效';row[13]=selectedVersionType();toast('版本配置已保存')
       }else if(formMode==='copy'||formMode==='publish'){
         captureCopySiteConfigs();
         const targetPartitions=copyTargetPartitions(),sourceFirmware=formMode==='copy'?cloneData(copySourceRow?.[10]):undefined;
         targetPartitions.forEach(partition=>{
           const config=copySiteConfigState[partition],siteSettings={...settings,appUrl:config.url,androidAppId:config.androidAppId,protocolVersion:config.protocolVersion,hasExistingApk:config.hasApk};
-          siteData[partition].unshift([versionInput.value.trim(),platformToLabel(document.querySelector('.platform.selected').dataset.platform),description,force?'强制更新':'非强制更新','当前用户','2026-08-26 11:30:00','最新',cloneData(descriptionPayload),cloneData(forceConfig),cloneData(siteSettings),cloneData(sourceFirmware),'待生效'])
+          siteData[partition].unshift([versionInput.value.trim(),platformToLabel(document.querySelector('.platform.selected').dataset.platform),description,force?'强制更新':'非强制更新','当前用户','2026-08-26 11:30:00','最新',cloneData(descriptionPayload),cloneData(forceConfig),cloneData(siteSettings),cloneData(sourceFirmware),'待生效',undefined,selectedVersionType()])
         });
         currentPage=1;toast(formMode==='copy'?'版本配置已复制':`版本已发布至${copyTargetSites().map(siteName).join('、')}`)
       }
