@@ -8,6 +8,7 @@
 .fx-tab { border-radius:0; border-bottom:2px solid transparent; padding:12px 2px; background:transparent; color:#596578; }
 .fx-tab[aria-selected="true"] { border-bottom-color:var(--blue); color:var(--blue); font-weight:600; }
 .fx-tab:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+.fx-tab[hidden] { display:none!important; }
 #fxFirmwareTabPanel { min-height:460px; }
 #fgModels .multi-select-toggle, #fgModels .multi-select-menu { width:280px; }
 .fg-table { min-width:1245px; }
