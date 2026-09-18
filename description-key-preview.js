@@ -23,10 +23,6 @@
       preview.setAttribute('aria-live', 'polite');
       preview.style.cssText = 'margin-top:10px;padding:12px;background:#f5f7fa;border:1px solid #e5eaf1;line-height:1.7;overflow-wrap:anywhere;white-space:pre-wrap';
       input.after(preview);
-      const hint = document.createElement('div');
-      hint.className = 'mini-note';
-      hint.textContent = '原型示例 Key：app_upgrade_description、app_force_upgrade_description、app_sleep_upgrade_description';
-      preview.after(hint);
     }
     const key = input.value.trim();
     preview.hidden = !key;
