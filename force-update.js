@@ -103,13 +103,30 @@
   let activeSite = 'cn', page = 1, perPage = 10, filters = { status:'all', platforms:[...platforms] };
   let siteSwitchTimer = null;
   let groups = [], draftDescriptions = {}, editId = null, deleteId = null, groupSerial = 0, draftEpoch = 0;
-  const defaultDescriptionKey = 'app_force_upgrade_description';
-  let descriptionEnabled = false, descriptionKey = defaultDescriptionKey, useDescriptionKey = true;
+  let descriptionEnabled = false;
   const emptyDescriptions = () => Object.fromEntries(langs.map(language => [language, '']));
+  const defaultForceDescriptions = {
+    '中文': '亲爱的用户，由于本次更新调整了底层服务，旧版本将无法继续正常使用部分核心功能。 为避免影响您的日常使用，请立即更新至最新版本。感谢您的理解与支持！',
+    '英语': 'Dear user, this update includes changes to the underlying services, so some core features will no longer work properly in older versions. To avoid disruption to your daily use, please update to the latest version now. Thank you for your understanding and support!',
+    '繁体中文': '親愛的用戶，由於本次更新調整了底層服務，舊版本將無法繼續正常使用部分核心功能。為避免影響您的日常使用，請立即更新至最新版本。感謝您的理解與支持！',
+    '德语': 'Liebe Nutzerin, lieber Nutzer, mit diesem Update wurden die zugrunde liegenden Dienste angepasst. Daher werden einige Kernfunktionen in älteren Versionen nicht mehr ordnungsgemäß funktionieren. Bitte aktualisieren Sie jetzt auf die neueste Version, um Beeinträchtigungen bei der täglichen Nutzung zu vermeiden. Vielen Dank für Ihr Verständnis und Ihre Unterstützung!',
+    '法语': 'Chère utilisatrice, cher utilisateur, cette mise à jour modifie les services sous-jacents. Certaines fonctionnalités essentielles ne fonctionneront donc plus correctement dans les anciennes versions. Pour éviter toute perturbation dans votre utilisation quotidienne, veuillez passer dès maintenant à la dernière version. Merci de votre compréhension et de votre soutien !',
+    '日语': 'ユーザーの皆様へ。今回のアップデートでは基盤サービスを変更したため、旧バージョンでは一部の主要機能が正常に利用できなくなります。日常のご利用に支障が生じないよう、今すぐ最新バージョンにアップデートしてください。ご理解とご協力に感謝いたします。',
+    '西班牙语': 'Estimado usuario: esta actualización incluye cambios en los servicios subyacentes, por lo que algunas funciones esenciales dejarán de funcionar correctamente en las versiones anteriores. Para evitar interrupciones en su uso diario, actualice ahora a la última versión. ¡Gracias por su comprensión y apoyo!',
+    '阿拉伯语': 'عزيزي المستخدم، يتضمن هذا التحديث تغييرات في الخدمات الأساسية، ولذلك لن تعمل بعض الوظائف الرئيسية بشكل صحيح في الإصدارات القديمة. لتجنب التأثير على استخدامك اليومي، يُرجى التحديث إلى أحدث إصدار الآن. شكرًا لتفهمك ودعمك!',
+    '捷克语': 'Vážení uživatelé, tato aktualizace přináší změny v podkladových službách, a proto některé klíčové funkce ve starších verzích již nebudou fungovat správně. Abyste předešli potížím při každodenním používání, aktualizujte prosím ihned na nejnovější verzi. Děkujeme za pochopení a podporu!',
+    '波兰语': 'Drogi Użytkowniku, ta aktualizacja wprowadza zmiany w usługach bazowych, dlatego niektóre kluczowe funkcje nie będą już działać prawidłowo w starszych wersjach. Aby uniknąć zakłóceń w codziennym korzystaniu, zaktualizuj aplikację do najnowszej wersji już teraz. Dziękujemy za zrozumienie i wsparcie!',
+    '土耳其语': 'Değerli kullanıcımız, bu güncellemede temel hizmetlerde değişiklikler yapıldığından, eski sürümlerde bazı temel özellikler artık düzgün çalışmayacaktır. Günlük kullanımınızın etkilenmemesi için lütfen hemen en son sürüme güncelleyin. Anlayışınız ve desteğiniz için teşekkür ederiz!',
+    '芬兰语': 'Hyvä käyttäjä, tässä päivityksessä on tehty muutoksia taustapalveluihin, joten osa keskeisistä toiminnoista ei enää toimi oikein vanhemmissa versioissa. Päivitä uusimpaan versioon nyt, jotta päivittäinen käyttösi ei häiriinny. Kiitos ymmärryksestäsi ja tuestasi!',
+    '意大利语': 'Gentile utente, questo aggiornamento modifica i servizi sottostanti, pertanto alcune funzionalità principali non funzioneranno più correttamente nelle versioni precedenti. Per evitare interruzioni nell’utilizzo quotidiano, aggiorna subito all’ultima versione. Grazie per la comprensione e il supporto!',
+    '匈牙利语': 'Kedves Felhasználó! Ez a frissítés módosítja a háttérszolgáltatásokat, ezért egyes alapvető funkciók a régebbi verziókban már nem fognak megfelelően működni. A mindennapi használat zavartalansága érdekében kérjük, frissítsen most a legújabb verzióra. Köszönjük megértését és támogatását!',
+    '罗马尼亚语': 'Stimate utilizator, această actualizare modifică serviciile de bază, astfel încât unele funcții esențiale nu vor mai funcționa corect în versiunile vechi. Pentru a evita întreruperile în utilizarea zilnică, vă rugăm să actualizați imediat la cea mai recentă versiune. Vă mulțumim pentru înțelegere și sprijin!',
+    '韩语': '사용자 여러분, 이번 업데이트로 기반 서비스가 변경되어 이전 버전에서는 일부 핵심 기능이 더 이상 정상적으로 작동하지 않습니다. 일상적인 이용에 불편이 없도록 지금 최신 버전으로 업데이트해 주세요. 이해와 성원에 감사드립니다!',
+    '立陶宛语': 'Gerbiamas naudotojau, šiame atnaujinime pakeistos pagrindinės paslaugos, todėl kai kurios esminės funkcijos senesnėse versijose nebeveiks tinkamai. Kad kasdienis naudojimas nebūtų sutrikdytas, nedelsdami atnaujinkite į naujausią versiją. Dėkojame už supratingumą ir palaikymą!',
+    '马来语': 'Pengguna yang dihormati, kemas kini ini melibatkan perubahan pada perkhidmatan asas, jadi beberapa fungsi teras tidak lagi akan berfungsi dengan baik dalam versi lama. Untuk mengelakkan gangguan pada penggunaan harian anda, sila kemas kini kepada versi terkini sekarang. Terima kasih atas pemahaman dan sokongan anda!'
+  };
   const recordDescriptions = record => ({ ...emptyDescriptions(), ...(record.descriptions || { 中文:record.description || '' }) });
-  const listDescription = record => typeof record.descriptionEnabled === 'boolean'
-    ? (record.descriptionEnabled ? record.descriptionKey || '—' : '—')
-    : record.descriptions
+  const listDescription = record => record.descriptionEnabled === false ? '—' : record.descriptions
     ? record.descriptions[activeSite === 'cn' ? '中文' : '英语'] || record.descriptions.中文 || '—'
     : record.description || '—';
   let previousFocus = null;
@@ -314,17 +331,16 @@
     textarea.style.height = `${Math.max(38, textarea.scrollHeight + 2)}px`;
   }
   function renderDescriptions() {
-    if (!firmwareFormActive && useDescriptionKey) {
-      return `<div class="form-row"><label>强制升级描述：</label><div class="control">
+    const toggle = firmwareFormActive ? '' : `<div class="form-row"><label>是否使用强制升级描述：</label><div class="control">
         <label class="radio"><input type="radio" name="fxDescriptionEnabled" value="yes" ${descriptionEnabled ? 'checked' : ''}>是</label>
         <label class="radio"><input type="radio" name="fxDescriptionEnabled" value="no" ${!descriptionEnabled ? 'checked' : ''}>否</label>
-      </div></div>${descriptionEnabled ? `<div class="form-row"><label for="fxDescriptionKey">强制升级描述Key：</label><div class="control"><input type="text" id="fxDescriptionKey" value="${escape(descriptionKey)}" placeholder="请输入强制升级描述Key"></div></div>` : ''}`;
-    }
+      </div></div>`;
+    if (!firmwareFormActive && !descriptionEnabled) return toggle;
     const markup = `<div class="form-row fx-description-row"><label>强制升级描述：</label><div class="control">
       <div class="fx-description-toolbar"><div class="upload"><button type="button" class="file-btn">上传描述<input type="file" class="fx-description-upload" accept=".xlsx" aria-label="上传强制升级描述"></button><span>文件大小 ≤ 5M</span><a class="template-download" href="outputs/upgrade-description-templates/强制升级描述模板.xlsx?v=20260911" download="强制升级描述模板.xlsx">下载模板</a></div></div>
       <table class="fx-description-table"><thead><tr><th>语种</th><th>强制升级描述</th></tr></thead><tbody>${langs.map(language => `<tr><td>${language}</td><td><textarea rows="1" class="fx-description" data-fx-language="${language}" aria-label="${language}强制升级描述" placeholder="请输入${language}强制升级描述" ${language === '阿拉伯语' ? 'dir="auto"' : ''}>${escape(draftDescriptions[language])}</textarea></td></tr>`).join('')}</tbody></table>
       </div></div>`;
-    return firmwareFormActive ? markup.replaceAll('强制升级描述', '升级描述').replaceAll('强制升级描述模板', '升级描述模板') : markup;
+    return firmwareFormActive ? markup.replaceAll('强制升级描述', '升级描述').replaceAll('强制升级描述模板', '升级描述模板') : toggle + markup;
   }
   function renderForm() {
     if (firmwareFormActive) { renderFirmwareForm(); return; }
@@ -332,21 +348,19 @@
     root.innerHTML = `<p class="fx-error-summary" role="alert"></p>
       <div class="form-row fx-config-row"><label>强制升级版本：</label><div class="control fx-config-control">${groups.map(renderGroup).join('')}
       ${editId === null ? '<button type="button" class="secondary fx-group-add" data-fx-add-group>＋ 新增配置组</button>' : ''}</div></div>${renderDescriptions()}`;
-    window.DescriptionKeyPreview.sync($('#fxDescriptionKey', root));
     requestAnimationFrame(() => $$('.fx-description', root).forEach(resizeDescription));
   }
   function create() {
-    editId = null; draftEpoch++; draftDescriptions = emptyDescriptions(); groups = [newGroup()];
-    useDescriptionKey = true; descriptionEnabled = false; descriptionKey = defaultDescriptionKey;
+    editId = null; draftEpoch++; draftDescriptions = copy(defaultForceDescriptions); groups = [newGroup()];
+    descriptionEnabled = false;
     $('#fxList').hidden = true; $('#fxEdit').hidden = true; $('#fxCreate').hidden = false; renderForm(); window.scrollTo(0,0);
   }
   function edit(id) {
     const record = database.records.find(item => item.id === id && item.site === activeSite);
     if (!record) return;
     editId = id; draftEpoch++; draftDescriptions = recordDescriptions(record);
-    useDescriptionKey = typeof record.descriptionEnabled === 'boolean';
-    descriptionEnabled = record.descriptionEnabled === true;
-    descriptionKey = record.descriptionKey ?? defaultDescriptionKey;
+    descriptionEnabled = record.descriptionEnabled ?? Object.values(draftDescriptions).some(value => value.trim());
+    if (!Object.values(draftDescriptions).some(value => value.trim())) draftDescriptions = copy(defaultForceDescriptions);
     const group = newGroup(record.site); group.platform = record.platform;
     group.configs[`${record.platform}:${record.site}`] = { mode:record.mode, ranges:copy(record.ranges.length ? record.ranges : [newRange()]) };
     groups = [group];
@@ -391,13 +405,14 @@
       if (!record) { toast('配置不存在，请刷新列表'); return; }
       const config = configFor(groups[0], record.site);
       Object.assign(record, { description:draftDescriptions.中文 || '', descriptions:copy(draftDescriptions), mode:config.mode, ranges:config.mode === 'all' ? [] : copy(config.ranges), operator:'当前用户', updated:stamp });
-      if (useDescriptionKey) Object.assign(record, { descriptionEnabled, descriptionKey:descriptionEnabled ? descriptionKey : '' });
+      record.descriptionEnabled = descriptionEnabled;
+      delete record.descriptionKey;
       save(); showForceList(); toast('配置已保存');
     } else {
       // Validate every group before allocating IDs or creating any record.
       const records = groups.flatMap(group => group.sites.map(site => {
         const config = configFor(group, site);
-        return { id:database.nextId++, site, platform:group.platform, description:draftDescriptions.中文 || '', descriptions:copy(draftDescriptions), descriptionEnabled, descriptionKey:descriptionEnabled ? descriptionKey : '', mode:config.mode,
+        return { id:database.nextId++, site, platform:group.platform, description:draftDescriptions.中文 || '', descriptions:copy(draftDescriptions), descriptionEnabled, mode:config.mode,
           ranges:config.mode === 'all' ? [] : copy(config.ranges), active:true, operator:'当前用户', updated:stamp };
       }));
       database.records.push(...records); save(); filters = { status:'all', platforms:[...platforms] };
@@ -613,7 +628,6 @@
   ['#fxCreateForm','#fxEditForm','#fgForm'].forEach(selector => {
     const root = $(selector);
     root.addEventListener('input', event => {
-      if (event.target.id === 'fxDescriptionKey') descriptionKey = event.target.value;
       if (event.target.matches('.fx-description')) {
         draftDescriptions[event.target.dataset.fxLanguage] = event.target.value;
         resizeDescription(event.target);
