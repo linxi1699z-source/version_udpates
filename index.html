@@ -68,10 +68,13 @@
       cn:[['4.3.1','安卓','测试专用，非相关人员请勿升级！','一般更新','李莹灿','2026-08-24 17:15:11',''],['4.3.0','iOS','测试专用，非相关人员请勿升级！','一般更新','李莹灿','2026-08-24 17:14:49',''],['4.3.1','iOS','测试专用，非相关人员请勿升级！','一般更新','李莹灿','2026-08-24 17:14:28','最新'],['4.3.1','HarmonyOS','测试专用，非相关人员请勿升级！','一般更新','李莹灿','2026-08-24 17:14:12','最新'],['4.2.9','安卓','修复已知问题，优化使用体验。','强制更新','李莹灿','2026-08-20 10:42:16',''],['4.2.8','iOS','优化睡眠数据展示与同步体验。','一般更新','王明','2026-08-19 16:22:31',''],['4.2.8','HarmonyOS','优化设备连接稳定性。','一般更新','王明','2026-08-19 16:19:05',''],['4.2.7','安卓','新增健康趋势功能，建议升级。','强制更新','赵悦','2026-08-16 09:47:20',''],['4.2.6','iOS','修复部分设备无法连接的问题。','一般更新','赵悦','2026-08-13 14:35:09',''],['4.2.6','HarmonyOS','修复已知问题，提升系统稳定性。','一般更新','赵悦','2026-08-13 14:31:42',''],['4.2.5','安卓','优化消息推送与电量显示。','一般更新','李莹灿','2026-08-09 10:12:30','']],
       global:[['4.3.2','iOS','Performance improvements and bug fixes.','一般更新','Sophie Lee','2026-08-25 09:30:18','最新'],['4.3.2','HarmonyOS','Performance improvements and bug fixes.','一般更新','Sophie Lee','2026-08-25 09:28:02',''],['4.3.1','安卓','Improve sleep insights and connection stability.','强制更新','Sophie Lee','2026-08-23 16:20:43',''],['4.3.0','iOS','New health trends and enhanced app stability.','一般更新','Mia Chen','2026-08-21 11:43:06',''],['4.3.0','HarmonyOS','New health trends and enhanced app stability.','一般更新','Mia Chen','2026-08-21 11:39:44',''],['4.2.9','安卓','A smoother experience with updated connection logic.','一般更新','Mia Chen','2026-08-19 18:14:27',''],['4.2.8','iOS','Important security and performance improvements.','强制更新','Alex Wang','2026-08-16 14:20:15',''],['4.2.8','HarmonyOS','Important security and performance improvements.','强制更新','Alex Wang','2026-08-16 14:18:33',''],['4.2.7','安卓','Improved device pairing and notification delivery.','一般更新','Alex Wang','2026-08-13 09:11:58',''],['4.2.6','iOS','Fixed known issues and optimized data sync.','一般更新','Sophie Lee','2026-08-10 16:32:49',''],['4.2.6','HarmonyOS','Fixed known issues and optimized data sync.','一般更新','Sophie Lee','2026-08-10 16:29:12','']]
     };
-    const sessionDataKey='app-version-admin-site-data';
-    function restoreSessionData(){try{const saved=JSON.parse(sessionStorage.getItem(sessionDataKey));if(saved&&Array.isArray(saved.cn)&&Array.isArray(saved.global)){siteData.cn=saved.cn;siteData.global=saved.global}}catch{sessionStorage.removeItem(sessionDataKey)}}
+    const sessionDataKey='app-version-admin-current-site-data';
+    function restoreSessionData(){try{const saved=JSON.parse(sessionStorage.getItem(sessionDataKey));if(saved&&Array.isArray(saved.cn)&&Array.isArray(saved.global)){siteData.cn=saved.cn;siteData.global=saved.global;if(Array.isArray(saved.us))siteData.us=saved.us;if(Array.isArray(saved.uk))siteData.uk=saved.uk}}catch{sessionStorage.removeItem(sessionDataKey)}}
     function persistSessionData(){sessionStorage.setItem(sessionDataKey,JSON.stringify(siteData))}
     restoreSessionData();
+    // Migrate the former shared sample/session data into independent site records.
+    siteData.us ||= JSON.parse(JSON.stringify(siteData.global));
+    siteData.uk ||= JSON.parse(JSON.stringify(siteData.global));
     function normalizeUpdateMethods(){Object.values(siteData).forEach(rows=>rows.forEach(row=>{if(row[3]==='一般更新')row[3]='非强制更新'}))}
     normalizeUpdateMethods();
     const firmware='固件一代： 01.049.001—01.050.000<br>固件二代： 02.013.000—02.022.006<br>固件二代 Air： 04.004.000—04.011.000<br>固件三代： 05.001.000—05.011.003<br>固件行业版： 06.001.001—06.001.001';
@@ -87,14 +90,15 @@
     const activeRows=()=>siteData[currentSite];
     const listTable=document.querySelector('.list-page table'),listColumnWidths=['100px','100px','110px','200px','310px','90px','85px','150px','260px'];
     const tableScroll=document.createElement('div');tableScroll.className='version-table-scroll';listTable.before(tableScroll);tableScroll.append(listTable);
-    const versionTypeColumn=document.createElement('col'),versionTypeHeader=document.createElement('th');versionTypeColumn.style.width=listColumnWidths[2];versionTypeHeader.textContent='版本类型';listTable.querySelector('colgroup').children[1].after(versionTypeColumn);listTable.querySelector('thead th:nth-child(2)').after(versionTypeHeader);[...listTable.querySelectorAll('colgroup col')].forEach((column,index)=>column.style.width=listColumnWidths[index]);if(!showAppVersionStatus){listTable.querySelector('colgroup').children[5].remove();listTable.querySelector('thead tr').children[5].remove();}if(!showAppVersionActivation)listTable.querySelector('colgroup').lastElementChild.style.width='200px';
-    document.querySelector('.form-page .form-row').insertAdjacentHTML('afterend','<div class="form-row" id="versionTypeRow"><label class="required">版本类型：</label><div class="control"><label class="radio"><input type="radio" name="versionType" value="正常版本" checked>正常版本</label><label class="radio"><input type="radio" name="versionType" value="FDA测试版本">FDA测试版本</label></div></div>');
+    const currentColumnWidths=['100px','100px','200px','310px','90px','85px','150px','200px'];[...listTable.querySelectorAll('colgroup col')].forEach((column,index)=>column.style.width=currentColumnWidths[index]);if(!showAppVersionStatus){listTable.querySelector('colgroup').children[4].remove();listTable.querySelector('thead tr').children[4].remove();}
+
     const selectedVersionType=()=>document.querySelector('input[name="versionType"]:checked')?.value||'正常版本';
     function setVersionType(type='正常版本'){const value=type==='FDA测试版本'?'FDA测试版本':'正常版本';document.querySelectorAll('input[name="versionType"]').forEach(input=>input.checked=input.value===value)}
     function setVersionTypeReadonly(readonly){document.querySelectorAll('input[name="versionType"]').forEach(input=>input.disabled=readonly)}
     const siteOptions=[{value:'cn',label:'中国大陆'},{value:'us',label:'美区'},{value:'uk',label:'英区'}];
     const firmwareVersions=['01.001.003','01.001.007','01.049.001','01.050.000','02.013.000','02.022.006','05.011.003','06.001.001'];
-    const dataPartition=site=>site==='cn'?'cn':'global';
+    const dataPartition=site=>site;
+    const siteRegion=site=>site==='cn'?'cn':'global';
     const siteName=site=>siteOptions.find(option=>option.value===site)?.label||'';
     function compareAppVersions(start,end){const startParts=start.split('.').map(Number),endParts=end.split('.').map(Number);for(let index=0;index<3;index+=1){if(startParts[index]!==endParts[index])return startParts[index]-endParts[index]}return 0}
     const availableAppVersions=()=>[...new Set(activeRows().map(row=>row[0]))].sort(compareAppVersions);
@@ -130,9 +134,9 @@
     const versionStatus=row=>row[11]||'已生效';
     const versionType=row=>row[13]||'正常版本';
     const firmwareDisplay=row=>row[10]?.configs?Object.entries(row[10].configs).map(([model,config])=>`${model}： ${config.start} - ${config.end}`).join('<br>'):row[10]?.start?`固件版本： ${row[10].start} - ${row[10].end||'最新版本'}`:firmware;
-    function renderRows(){const rows=filteredRows();const totalPages=Math.max(1,Math.ceil(rows.length/pageSize));currentPage=Math.min(currentPage,totalPages);const pageRows=rows.slice((currentPage-1)*pageSize,currentPage*pageSize);versionRows.innerHTML=pageRows.length?pageRows.map(({row:r,index})=>{const isLatest=canEditVersionRow(r),canActivate=versionStatus(r)!=='已生效';return `<tr><td>${r[0]}${isLatest?'<span class="badge">最新</span>':''}</td><td>${labelToPlatform(r[1])}</td><td>${rowDescription(r)}</td><td class="firmware">${firmwareDisplay(r)}</td>${showAppVersionStatus?`<td><span class="version-status ${versionStatus(r)==='已生效'?'effective':'pending'}">${versionStatus(r)}</span></td>`: ''}<td>${r[4]}</td><td>${r[5]}</td><td class="actions"><span class="link edit" data-index="${index}">查看与编辑</span><span class="link copy" data-index="${index}">复制</span><span style="display:${showAppVersionActivation?'inline':'none'}" class="link ${canActivate?'single-activate':'disabled'}" ${canActivate?`data-index="${index}"`: 'aria-disabled="true"'}>一键生效</span><span class="delete">删除</span></td></tr>`}).join(''):'<tr><td class="empty-state" colspan="${showAppVersionStatus?9:8}">暂无符合筛选条件的数据</td></tr>';renderPagination(totalPages)}
+    function renderRows(){const rows=filteredRows();const totalPages=Math.max(1,Math.ceil(rows.length/pageSize));currentPage=Math.min(currentPage,totalPages);const pageRows=rows.slice((currentPage-1)*pageSize,currentPage*pageSize);versionRows.innerHTML=pageRows.length?pageRows.map(({row:r,index})=>{const isLatest=canEditVersionRow(r),canActivate=versionStatus(r)!=='已生效';return `<tr><td>${r[0]}${isLatest?'<span class="badge">最新</span>':''}</td><td>${labelToPlatform(r[1])}</td><td>${rowDescription(r)}</td><td class="firmware">${firmwareDisplay(r)}</td>${showAppVersionStatus?`<td><span class="version-status ${versionStatus(r)==='已生效'?'effective':'pending'}">${versionStatus(r)}</span></td>`: ''}<td>${r[4]}</td><td>${r[5]}</td><td class="actions"><span class="link edit" data-index="${index}">查看与编辑</span><span class="link copy" data-index="${index}">复制</span><span style="display:${showAppVersionActivation?'inline':'none'}" class="link ${canActivate?'single-activate':'disabled'}" ${canActivate?`data-index="${index}"`: 'aria-disabled="true"'}>一键生效</span><span class="delete">删除</span></td></tr>`}).join(''):'<tr><td class="empty-state" colspan="${showAppVersionStatus?8:7}">暂无符合筛选条件的数据</td></tr>';renderPagination(totalPages)}
     const defaultRenderRows=renderRows;
-    renderRows=function(){defaultRenderRows();versionRows.querySelectorAll('tr').forEach(rowElement=>{const editLink=rowElement.querySelector('.edit');if(!editLink){rowElement.querySelector('.empty-state')?.setAttribute('colspan',showAppVersionStatus?'9':'8');return}const typeCell=document.createElement('td');typeCell.textContent=versionType(activeRows()[Number(editLink.dataset.index)]);rowElement.children[1].after(typeCell)})}
+
     const languageTable=document.querySelector('.language-table');languageTable.querySelector('thead tr').insertAdjacentHTML('beforeend','<th class="force-description-cell required">APP 强制更新描述</th>');document.querySelector('#languages').innerHTML=langs.map(x=>`<tr><td>${x}</td><td><textarea class="normal-description" placeholder="请输入${x} 版本描述"></textarea></td><td class="force-description-cell"><textarea class="force-description" placeholder="请输入${x} APP 强制更新描述"></textarea></td></tr>`).join('');
     function autoResize(textarea){textarea.style.height='auto';textarea.style.height=`${Math.max(50,textarea.scrollHeight)}px`}
     function syncDescriptionHeights(){document.querySelectorAll('#languages textarea').forEach(autoResize)}
@@ -152,7 +156,7 @@
     function restoreFormSettings(settings){if(!settings)return;document.querySelectorAll('[data-fw]').forEach(input=>input.checked=(settings.firmwareSelected||[]).includes(input.dataset.fw));renderCards();restoreFirmwareCards(settings.cards);recoveryToggle.checked=Boolean(settings.recovery?.enabled);recoveryConfig.value=settings.recovery?.config||'';recoveryDetails.classList.toggle('show',recoveryToggle.checked);appGrayToggle.checked=Boolean(settings.appGray);appUrl.value=settings.appUrl||appUrl.value;androidAppId.value=settings.androidAppId||androidAppId.value;protocolVersion.value=settings.protocolVersion||protocolVersion.value;normalUpdateDialog.checked=Boolean(settings.normalUpdateDialog??settings.updateDialog);document.querySelector('#hideUpdateDialog').checked=!normalUpdateDialog.checked;forceUpdateDialog.checked=Boolean(settings.forceUpdateDialog);hasExistingApk=Boolean(settings.hasExistingApk)||hasExistingApk;if(hasExistingApk)apkName.textContent='已上传：RingConn-release.apk';syncPlatformFields()}
     let hasExistingApk=false;
     const storeUrls={cn:'https://itunes.apple.com/cn/app/id6479988118',global:'https://itunes.apple.com/cn/app/id6444470583'},harmonyStoreUrl='https://appgallery.huawei.com/app/detail?id=com.szjztech.ringconn.hm';
-    const defaultAppUrl=(site,platform='')=>platform==='HarmonyOS'?harmonyStoreUrl:storeUrls[dataPartition(site)];
+    const defaultAppUrl=(site,platform='')=>platform==='HarmonyOS'?harmonyStoreUrl:storeUrls[siteRegion(site)];
     const defaultAndroidAppId=site=>dataPartition(site)==='cn'?'com.szjztech.ringconn':'com.gdjztech.ringconn';
     function syncOsPlatformFields(){const platform=document.querySelector('.platform.selected')?.dataset.platform;document.querySelectorAll('[data-os-platform]').forEach(field=>{field.hidden=field.dataset.osPlatform!==platform;field.querySelector('input').required=!field.hidden})}
     function syncPlatformFields(){syncOsPlatformFields();const platform=document.querySelector('.platform.selected').dataset.platform;const isAndroid=platform==='Android';document.querySelectorAll('.android-only').forEach(x=>x.classList.toggle('show',isAndroid));document.querySelectorAll('.ios-only').forEach(x=>x.classList.toggle('show',!isAndroid));document.querySelectorAll('.apk-field').forEach(x=>x.classList.toggle('show',isAndroid&&!appGrayToggle.checked));document.querySelectorAll('.url-field').forEach(x=>x.classList.toggle('show',!isAndroid&&!appGrayToggle.checked));syncCopySiteConfigFields()}
@@ -166,14 +170,23 @@
     function setForceAppVersionRanges(ranges=[{start:'',end:''}]){const normalized=ranges.length?ranges:[{start:'',end:''}];forceVersionRangesEl.innerHTML=normalized.map(forceVersionRangeMarkup).join('');syncForceVersionRangeActions()}
     function renderForceAppVersionOptions(){setForceAppVersionRanges(forceVersionRangeValues().map(range=>({start:range.start,end:range.end})))}
     function forceVersionRangeIssue(requireStart=false,requireEnd=false){const ranges=forceVersionRangeValues(),latestVersion=editingLatestAppVersion();for(let index=0;index<ranges.length;index+=1){const range=ranges[index],previous=ranges[index-1];if(requireStart&&!range.start)return {message:'请选择需强制更新开始版本',field:range.row.querySelector('.force-app-version-start')};if(requireEnd&&range.start&&!range.end)return {message:'请选择需强制更新结束版本',field:range.row.querySelector('.force-app-version-end')};if(latestVersion&&range.end&&compareAppVersions(range.end,latestVersion)>=0)return {message:'结束版本必须小于APP最新版本',field:range.row.querySelector('.force-app-version-end')};if(range.start&&range.end&&compareAppVersions(range.start,range.end)>0)return {message:'开始版本需要小于等于结束版本',field:range.row.querySelector('.force-app-version-end')};if(index>0&&range.start){if(!previous.end)return {message:'请先选择上一个区间的结束版本',field:previous.row.querySelector('.force-app-version-end')};if(compareAppVersions(range.start,previous.end)<0)return {message:'开始版本需要大于等于上一个区间的结束版本',field:range.row.querySelector('.force-app-version-start')}}}return null}
-    function renderCopySiteOptions(){const isPublish=formMode==='publish',sourcePartition=dataPartition(copySourceSite),options=isPublish?siteOptions:sourcePartition==='global'?siteOptions.filter(option=>option.value!==copySourceSite).sort((a,b)=>dataPartition(a.value)==='global'?-1:1):siteOptions.filter(option=>dataPartition(option.value)!==sourcePartition);copySiteOptions.innerHTML=options.map((option,index)=>`<label class="check"><input type="checkbox" value="${option.value}" ${isPublish?(option.value===siteSelect.value?'checked':''):(index===0?'checked':'')}>${option.label}</label>`).join('');copySiteConfigState={};renderCopySiteConfigs()}
-    const copyTargetSites=()=>[...copySiteOptions.querySelectorAll('input:checked')].map(input=>input.value);
+    function renderCopySiteOptions(){
+      if(formMode==='publish'){
+        copySiteOptions.innerHTML='<select id="publishSite" aria-label="发布站点" style="max-width:320px"><option value="">请选择站点</option>'+siteOptions.map(option=>`<option value="${option.value}">${option.label}</option>`).join('')+'</select>';
+        document.querySelector('#publishSite').value=siteSelect.value;
+      }else{
+        const options=siteOptions.filter(option=>option.value!==copySourceSite);
+        copySiteOptions.innerHTML='<select id="copyTargetSite" aria-label="复制目标站点" style="max-width:320px"><option value="">请选择站点</option>'+options.map(option=>`<option value="${option.value}">${option.label}</option>`).join('')+'</select>';
+      }
+      copySiteConfigState={};renderCopySiteConfigs();
+    }
+    const copyTargetSites=()=>[document.querySelector(formMode==='publish'?'#publishSite':'#copyTargetSite')?.value].filter(Boolean);
     const copyTargetPartitions=()=>[...new Set(copyTargetSites().map(dataPartition))];
-    const copySiteConfigTitle=partition=>partition==='cn'?'中国大陆站点配置':'美区 / 英区共享配置';
+    const copySiteConfigTitle=partition=>`${siteName(partition)}站点配置`;
     const selectedFormPlatform=()=>document.querySelector('.platform.selected')?.dataset.platform||'Android';
     const defaultCopySiteConfig=partition=>({url:defaultAppUrl(partition,selectedFormPlatform()),androidAppId:defaultAndroidAppId(partition),protocolVersion:'',hasApk:false});
     const sourceSharedCopySiteConfig=()=>({url:appUrl.value||defaultAppUrl(copySourceSite,selectedFormPlatform()),androidAppId:androidAppId.value||defaultAndroidAppId(copySourceSite),protocolVersion:protocolVersion.value,hasApk:hasExistingApk});
-    const initialCopySiteConfig=partition=>formMode==='copy'&&dataPartition(copySourceSite)==='global'&&partition==='global'?sourceSharedCopySiteConfig():defaultCopySiteConfig(partition);
+    const initialCopySiteConfig=partition=>formMode==='copy'&&siteRegion(copySourceSite)==='global'&&siteRegion(partition)==='global'?sourceSharedCopySiteConfig():defaultCopySiteConfig(partition);
     function captureCopySiteConfigs(){copySiteConfigs.querySelectorAll('[data-copy-partition]').forEach(card=>{const partition=card.dataset.copyPartition,previous=copySiteConfigState[partition]||initialCopySiteConfig(partition),apk=card.querySelector('.copy-apk');copySiteConfigState[partition]={url:card.querySelector('.copy-app-url').value,androidAppId:card.querySelector('.copy-android-app-id').value,protocolVersion:card.querySelector('.copy-protocol-version').value,hasApk:Boolean(apk.files.length)||previous.hasApk}})}
     function renderCopySiteConfigs(){captureCopySiteConfigs();copySiteConfigs.innerHTML=copyTargetPartitions().map(partition=>{const config=copySiteConfigState[partition]||initialCopySiteConfig(partition);copySiteConfigState[partition]=config;return `<section class="copy-site-config" data-copy-partition="${partition}"><div class="copy-site-config-title">${copySiteConfigTitle(partition)}</div><div class="copy-site-fields"><label class="required copy-config-apk">APK 文件：</label><div class="copy-config-apk"><button class="file-btn">＋ 点击上传<input type="file" accept=".apk" class="copy-apk"></button><span class="copy-apk-name mini-note">${config.hasApk?'已上传：RingConn-release.apk':''}</span></div><label class="required copy-config-url">URL：</label><div class="copy-config-url"><input class="copy-app-url" value="${config.url}" placeholder="请输入应用商店链接"></div><label class="required copy-config-android">AndroidAppId：</label><div class="copy-config-android"><input class="copy-android-app-id" value="${config.androidAppId}"></div><label class="required">协议版本：</label><div><select class="copy-protocol-version"><option value="">请选择协议版本</option><option value="4.4.0" ${config.protocolVersion==='4.4.0'?'selected':''}>4.4.0</option><option value="2.2.0" ${config.protocolVersion==='2.2.0'?'selected':''}>2.2.0</option></select></div></div></section>`}).join('');syncCopySiteConfigFields()}
     function syncCopySiteUrlDefaults(platform){if(!usesSiteConfigs())return;copySiteConfigs.querySelectorAll('[data-copy-partition]').forEach(card=>{const partition=card.dataset.copyPartition,config=copySiteConfigState[partition]||initialCopySiteConfig(partition),url=defaultAppUrl(partition,platform);config.url=url;copySiteConfigState[partition]=config;card.querySelector('.copy-app-url').value=url})}
@@ -302,7 +315,7 @@
     function validatePublishForm(){
       captureCopySiteConfigs();
       const targets=copyTargetPartitions();
-      if(!targets.length)return validationError('请选择发布站点');
+      if(!targets.length)return validationError('请选择站点',document.querySelector('#publishSite'));
       const version=versionInput.value.trim(),platform=selectedFormPlatform();
       if(/^[1-9]\d{0,8}\.\d{0,9}\.\d{0,9}$/.test(version)){
         const hasNonLatestTarget=targets.some(partition=>{const latest=[...siteData[partition]].filter(row=>platformKey(row)===platform).map(row=>row[0]).sort(compareAppVersions).at(-1);return latest&&compareAppVersions(version,latest)<=0});
@@ -324,8 +337,8 @@
       return valid;
     }
     submitButton.onclick=()=>{
-      if(formMode==='copy'&&!copyTargetSites().length){toast('请选择复制站点');return}
-      if(formMode==='publish'&&!copyTargetSites().length){toast('请选择发布站点');return}
+      if(formMode==='copy'&&!copyTargetSites().length){validationError('请选择站点',document.querySelector('#copyTargetSite'));return}
+      if(formMode==='publish'&&!copyTargetSites().length){validationError('请选择站点',document.querySelector('#publishSite'));return}
       if(formMode==='publish'?!validatePublishForm():!validateForm())return;
       const descriptions=collectDescriptions(),forceDescriptions=showForceDescriptions&&forceUpdate.checked?collectForceDescriptions():(formMode==='edit'?activeRows()[editIndex]?.[7]?.force:copySourceRow?.[7]?.force)||{},description=descriptions[descriptionLanguage()],force=forceUpdate.checked,descriptionPayload=force?{normal:descriptions,force:forceDescriptions}:descriptions,forceConfig=currentForceConfig(force),settings=collectFormSettings();
       if(formMode==='edit'){
@@ -337,7 +350,7 @@
           const config=copySiteConfigState[partition],siteSettings={...settings,appUrl:config.url,androidAppId:config.androidAppId,protocolVersion:config.protocolVersion,hasExistingApk:config.hasApk};
           siteData[partition].unshift([versionInput.value.trim(),platformToLabel(document.querySelector('.platform.selected').dataset.platform),description,force?'强制更新':'非强制更新','当前用户','2026-08-26 11:30:00','最新',cloneData(descriptionPayload),cloneData(forceConfig),cloneData(siteSettings),cloneData(sourceFirmware),'待生效',undefined,selectedVersionType()])
         });
-        currentPage=1;toast(formMode==='copy'?'版本配置已复制':`版本已发布至${copyTargetSites().map(siteName).join('、')}`)
+        if(formMode==='publish'){currentSite=copyTargetSites()[0];siteSelect.value=currentSite;}currentPage=1;toast(formMode==='copy'?'版本配置已复制':`版本已发布至${copyTargetSites().map(siteName).join('、')}`)
       }
       persistSessionData();renderRows();setTimeout(showList,700)
     };
@@ -374,11 +387,12 @@
       const model=event.target.dataset.firmwareUpdateModel;
       if(model){firmwareUpdateState.configs[model][field]=event.target.value;const issue=firmwareUpdateRangeIssue(firmwareUpdateState.configs[model]);if(issue)toast(issue)}else{firmwareUpdateState[field]=event.target.value;const issue=firmwareUpdateAppRangeIssue();if(issue)toast(issue)}
     });
-    firmwareUpdateButton.textContent='更新固件版本';firmwareUpdateButton.style.display='inline-block';activateButton.after(firmwareUpdateButton);firmwareUpdateButton.onclick=openFirmwareUpdateModal;batchSubmit.onclick=applyFirmwareUpdate;
+    firmwareUpdateButton.remove();
   </script>
   <script src="description-key-preview.js?v=20260918-no-hint"></script>
   <script src="app-description-key.js?v=20260922-multilingual"></script>
   <script src="force-update.js?v=20261016-empty-descriptions"></script>
   <link rel="stylesheet" href="select-design.css">
   <script src="select-design.js"></script>
+  <script src="app-version-navigation.js?v=20261026-release"></script>
 </body></html>
