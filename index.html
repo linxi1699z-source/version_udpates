@@ -58,6 +58,7 @@
     <div class="form-footer"><button class="secondary" id="cancelBtn">取消</button><button class="primary" id="submitBtn">发布</button></div>
   </section></main></div><div class="modal-backdrop" id="batchModal" role="dialog" aria-modal="true" aria-labelledby="batchModalTitle"><div class="modal"><div class="modal-header"><strong class="modal-title" id="batchModalTitle">批量更新固件版本</strong><button class="modal-close" id="batchClose" aria-label="关闭">×</button></div><div id="batchConfigs"></div><button class="batch-add" id="batchAdd">＋ 添加站点配置</button><div class="modal-footer"><button class="secondary" id="batchCancel">取消</button><button class="primary" id="batchSubmit">提交</button></div></div></div><div class="toast" id="toast"></div>
   <div class="site-switch-overlay" id="siteSwitchOverlay" role="status" aria-live="polite" aria-busy="false"><div class="site-switch-card"><span class="site-switch-spinner" aria-hidden="true"></span><span id="siteSwitchText">正在切换站点…</span></div></div>
+  <div class="modal-backdrop" id="versionSubmitModal" role="dialog" aria-modal="true" aria-labelledby="versionSubmitTitle"><div class="modal" style="width:min(420px,100%)"><div class="modal-header"><strong id="versionSubmitTitle">提交确认</strong></div><p>确定要提交新版本吗？</p><div class="modal-footer"><button class="secondary" id="versionSubmitCancel">取消</button><button class="primary" id="versionSubmitConfirm">确定</button></div></div></div>
   <script>
     document.querySelector('table thead th:last-child').textContent='操作';
     document.querySelector('.force-app-version-row .mini-note').textContent='开始版本和结束版本均为必选；相邻区间的开始版本需大于等于上一区间的结束版本';
@@ -172,7 +173,7 @@
     function forceVersionRangeIssue(requireStart=false,requireEnd=false){const ranges=forceVersionRangeValues(),latestVersion=editingLatestAppVersion();for(let index=0;index<ranges.length;index+=1){const range=ranges[index],previous=ranges[index-1];if(requireStart&&!range.start)return {message:'请选择需强制更新开始版本',field:range.row.querySelector('.force-app-version-start')};if(requireEnd&&range.start&&!range.end)return {message:'请选择需强制更新结束版本',field:range.row.querySelector('.force-app-version-end')};if(latestVersion&&range.end&&compareAppVersions(range.end,latestVersion)>=0)return {message:'结束版本必须小于APP最新版本',field:range.row.querySelector('.force-app-version-end')};if(range.start&&range.end&&compareAppVersions(range.start,range.end)>0)return {message:'开始版本需要小于等于结束版本',field:range.row.querySelector('.force-app-version-end')};if(index>0&&range.start){if(!previous.end)return {message:'请先选择上一个区间的结束版本',field:previous.row.querySelector('.force-app-version-end')};if(compareAppVersions(range.start,previous.end)<0)return {message:'开始版本需要大于等于上一个区间的结束版本',field:range.row.querySelector('.force-app-version-start')}}}return null}
     function renderCopySiteOptions(){
       if(formMode==='publish'){
-        copySiteOptions.innerHTML='<select id="publishSite" aria-label="发布站点" style="max-width:320px"><option value="">请选择站点</option>'+siteOptions.map(option=>`<option value="${option.value}">${option.label}</option>`).join('')+'</select>';
+        copySiteOptions.innerHTML='<select id="publishSite" aria-label="发布站点" disabled style="max-width:320px"><option value="">请选择站点</option>'+siteOptions.map(option=>`<option value="${option.value}">${option.label}</option>`).join('')+'</select>';
         document.querySelector('#publishSite').value=siteSelect.value;
       }else{
         const options=siteOptions.filter(option=>option.value!==copySourceSite);
@@ -227,7 +228,7 @@
       const isEdit=mode==='edit',isView=mode==='view',isCopy=mode==='copy',isPublish=mode==='publish',isExisting=isEdit||isView||isCopy;
       copySourceSite=isCopy?sourceSite:'';copySourceRow=isCopy?row:null;
       crumbCurrent.textContent=isEdit?'查看与编辑版本':isView?'查看版本':isCopy?'复制版本':'发布新版本';
-      copySiteRow.classList.toggle('show',usesSiteConfigs());updateModeRow.classList.toggle('show',showUpdateModeField);
+      copySiteRow.classList.toggle('show',usesSiteConfigs()||isEdit);updateModeRow.classList.toggle('show',showUpdateModeField);
       submitButton.textContent=isEdit?'保存':isCopy?'复制并发布':'发布';
       document.querySelectorAll('.platform').forEach(item=>item.classList.toggle('locked',isEdit||isView));
       document.querySelectorAll('.copy-shared-row').forEach(item=>item.classList.toggle('copy-hidden',usesSiteConfigs()));
@@ -245,6 +246,11 @@
         if(row[7]){const normalDescriptions=row[7].normal||row[7];populateDescriptions(normalDescriptions);populateForceDescriptions(row[7].force||(forceUpdate.checked?normalDescriptions:{}));descriptionUploadStatus.textContent='已上传翻译'}else{populateAiDescriptions(row[2]);populateForceDescriptions(forceUpdate.checked?collectDescriptions():{});descriptionUploadStatus.textContent=''}
         if(isCopy)renderCopySiteOptions();syncForceUpdate();
         if(isEdit)setUpdateSettingsReadonly(!canEditVersionRow(row));
+      }
+      if(isEdit){
+        copySiteOptions.innerHTML='<select id="editSite" aria-label="编辑站点" disabled style="max-width:320px">'+siteOptions.map(option=>`<option value="${option.value}">${option.label}</option>`).join('')+'</select>';
+        document.querySelector('#editSite').value=siteSelect.value;
+        copySiteConfigs.innerHTML='';
       }
       if(isView)setFormReadonly(true);
       list.style.display='none';form.style.display='block';window.scrollTo(0,0)
@@ -340,6 +346,22 @@
       if(formMode==='copy'&&!copyTargetSites().length){validationError('请选择站点',document.querySelector('#copyTargetSite'));return}
       if(formMode==='publish'&&!copyTargetSites().length){validationError('请选择站点',document.querySelector('#publishSite'));return}
       if(formMode==='publish'?!validatePublishForm():!validateForm())return;
+      if(formMode==='publish'||formMode==='edit'){
+        versionSubmitModal.classList.add('show');
+        document.querySelector('#versionSubmitConfirm').focus();
+        return;
+      }
+      commitVersionForm();
+    };
+    const versionSubmitModal=document.querySelector('#versionSubmitModal');
+    document.querySelector('#versionSubmitCancel').onclick=()=>{versionSubmitModal.classList.remove('show');showList()};
+    document.querySelector('#versionSubmitConfirm').onclick=()=>{
+      if(!versionSubmitModal.classList.contains('show'))return;
+      versionSubmitModal.classList.remove('show');
+      commitVersionForm();
+    };
+    versionSubmitModal.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();document.querySelector('#versionSubmitCancel').click()}});
+    function commitVersionForm(){
       const descriptions=collectDescriptions(),forceDescriptions=showForceDescriptions&&forceUpdate.checked?collectForceDescriptions():(formMode==='edit'?activeRows()[editIndex]?.[7]?.force:copySourceRow?.[7]?.force)||{},description=descriptions[descriptionLanguage()],force=forceUpdate.checked,descriptionPayload=force?{normal:descriptions,force:forceDescriptions}:descriptions,forceConfig=currentForceConfig(force),settings=collectFormSettings();
       if(formMode==='edit'){
         const row=activeRows()[editIndex];row[2]=description;row[3]=force?'强制更新':'非强制更新';row[7]=descriptionPayload;row[8]=forceConfig;row[9]=settings;row[11]='待生效';row[13]=selectedVersionType();toast('版本配置已保存')
@@ -352,7 +374,7 @@
         });
         if(formMode==='publish'){currentSite=copyTargetSites()[0];siteSelect.value=currentSite;}currentPage=1;toast(formMode==='copy'?'版本配置已复制':`版本已发布至${copyTargetSites().map(siteName).join('、')}`)
       }
-      persistSessionData();renderRows();setTimeout(showList,700)
+      persistSessionData();renderRows();showList();if(formMode==='publish'||formMode==='edit')toast('成功')
     };
     const firmwareUpdateModels=['Gen1','Gen2','Gen2 Air','Gen3','行业版'];
     let firmwareUpdateState={appStart:'',appEnd:'',configs:{}};
