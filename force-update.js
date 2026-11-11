@@ -38,6 +38,11 @@
   function hasActiveConflict(records, site, platform, excludedId = null) {
     return records.some(record => record.id !== excludedId && record.active && record.site === site && record.platform === platform);
   }
+  function hasSubmitConflict(records, site, platform, editId = null) {
+    const edited = records.find(record => record.id === editId);
+    if (editId === null || !edited?.active) return false;
+    return records.some(record => record.id !== editId && record.active === false && record.site === site && record.platform === platform);
+  }
   function hasFirmwareConflict(records, site, model, excludedId = null) {
     return records.some(record => record.id !== excludedId && record.active && record.site === site && record.model === model);
   }
@@ -58,7 +63,7 @@
     }
     return '';
   }
-  const rules = { audienceIssue, versionPattern, compareVersion, containsVersion, rangesOverlap, rangeIssue, overlappingIndex, hasActiveConflict, hasFirmwareConflict };
+  const rules = { audienceIssue, versionPattern, compareVersion, containsVersion, rangesOverlap, rangeIssue, overlappingIndex, hasActiveConflict, hasSubmitConflict, hasFirmwareConflict };
   if (typeof document === 'undefined') { module.exports = rules; return; }
 
   const $ = (selector, parent = document) => parent.querySelector(selector);
@@ -352,7 +357,6 @@
   }
   function validateDraft() {
     const combinations = new Set();
-    const willBeActive = editId === null || database.records.find(record => record.id === editId)?.active;
     for (const group of groups) {
       const card = $(`[data-fx-group="${group.uid}"]`, formRoot());
       if (!group.sites.length) return error('请选择站点', $('[data-fx-site-choice]', card));
@@ -360,8 +364,8 @@
         const key = `${group.platform}:${site}`;
         if (combinations.has(key)) return error('平台，站点数据重复', $('.fx-platform', card));
         combinations.add(key);
-        if (willBeActive && hasActiveConflict(database.records, site, group.platform, editId)) {
-          return error(`${platformLabel(group.platform)}在${siteLabel(site)}已经存在配置，无需重复添加。`, $('.fx-platform', card));
+        if (hasSubmitConflict(database.records, site, group.platform, editId)) {
+          return error(`${platformLabel(group.platform)}在${siteLabel(site)}存在生效配置，无需重复添加。`, $('.fx-platform', card));
         }
         const config = configFor(group, site);
         if (config.mode === 'all') continue;
