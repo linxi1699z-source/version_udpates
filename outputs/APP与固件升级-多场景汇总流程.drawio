@@ -40,7 +40,7 @@
           <mxGeometry relative="1" as="geometry" /></mxCell>
         <mxCell id="edge31" edge="1" parent="panelD" source="d3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;curved=0;dashed=0;html=1;endArrow=block;strokeColor=#64748b;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="d3r" value="否">
           <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="190.0" y="1730" /><mxPoint x="1420" y="1730" /></Array></mxGeometry></mxCell>
-        <mxCell id="d2n" parent="panelD" style="html=1;whiteSpace=wrap;fontSize=15;fontColor=#24324b;rounded=0;dashed=0;fillColor=#f5f9ff;strokeColor=#729bd6;" value="场景15｜强制升级 APP&lt;br&gt;仅返回最新 APP 版本&lt;br&gt;版本升级描述" vertex="1">
+        <mxCell id="d2n" parent="panelD" style="html=1;whiteSpace=wrap;fontSize=15;fontColor=#24324b;rounded=0;dashed=0;fillColor=#f5f9ff;strokeColor=#729bd6;" value="场景15｜强制升级固件&lt;br&gt;升级为当前 APP 版本&lt;br&gt;适配固件最大值" vertex="1">
           <mxGeometry height="90" width="300" x="474" y="1255.0" as="geometry" />
         </mxCell>
         <mxCell id="7g8lg81UN9a7FMrUAH1L-8" edge="1" parent="panelD" source="d2n" style="edgeStyle=orthogonalEdgeStyle;rounded=0;curved=0;dashed=0;html=1;endArrow=block;strokeColor=#64748b;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" target="d3r">
@@ -98,7 +98,7 @@
         </mxCell>
         <mxCell id="5L7Rlea4uMGw7-e0Nfzz-19" edge="1" parent="panelD" source="5L7Rlea4uMGw7-e0Nfzz-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;curved=0;dashed=0;html=1;endArrow=block;strokeColor=#64748b;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" target="d3r">
           <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="2250.0" y="1125.0" /><mxPoint x="2250.0" y="1730" /><mxPoint x="1420" y="1730" /></Array></mxGeometry></mxCell>
-        <mxCell id="5L7Rlea4uMGw7-e0Nfzz-16" parent="panelD" style="html=1;whiteSpace=wrap;fontSize=15;fontColor=#24324b;rounded=0;dashed=0;fillColor=#f5f9ff;strokeColor=#729bd6;" value="场景15｜强制升级 APP&lt;br&gt;仅返回最新 APP 版本&lt;br&gt;版本升级描述" vertex="1">
+        <mxCell id="5L7Rlea4uMGw7-e0Nfzz-16" parent="panelD" style="html=1;whiteSpace=wrap;fontSize=15;fontColor=#24324b;rounded=0;dashed=0;fillColor=#f5f9ff;strokeColor=#729bd6;" value="场景15｜强制升级固件&lt;br&gt;升级为当前 APP 版本&lt;br&gt;适配固件最大值" vertex="1">
           <mxGeometry height="90" width="300" x="1450.0" y="1080" as="geometry" />
         </mxCell>
         <mxCell id="5L7Rlea4uMGw7-e0Nfzz-17" edge="1" parent="panelD" source="5L7Rlea4uMGw7-e0Nfzz-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;curved=0;dashed=0;html=1;endArrow=block;strokeColor=#64748b;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="5L7Rlea4uMGw7-e0Nfzz-16" value="否">

@@ -50,4 +50,4 @@ for c in verts:
  t=el('text',{'x':x+w/2,'y':y+h/2-(len(lines)-1)*10+5,'text-anchor':'middle','font-family':'Arial, PingFang SC, Microsoft YaHei, sans-serif','font-size':15,'fill':'#24324b'},parent=group)
  for i,line in enumerate(lines):el('tspan',{'x':x+w/2,'dy':0 if i==0 else 20},line,parent=t)
 E.ElementTree(svg).write(p/'APP与固件升级-清晰布局.svg',encoding='utf-8',xml_declaration=True)
-h=p/'APP与固件升级-流程图打开.html';h.write_text(re.sub(r'清晰布局.svg\?v=[^" ]+', '清晰布局.svg?v=20261112-d-routing-v14',h.read_text()))
+h=p/'APP与固件升级-流程图打开.html';h.write_text(re.sub(r'清晰布局.svg\?v=[^" ]+', '清晰布局.svg?v=20261113-scene15-v15',h.read_text()))
